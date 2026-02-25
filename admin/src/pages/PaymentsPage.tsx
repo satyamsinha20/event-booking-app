@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../lib/api'
+import { confirmPendingTicket, fetchPendingTickets } from '../lib/adminApi'
 
 type PendingTicket = {
   _id: string
@@ -20,8 +20,8 @@ export function PaymentsPage() {
   async function load() {
     setError(null)
     try {
-      const res = await api.get('/api/tickets/pending')
-      setTickets(res.data.tickets ?? [])
+      const items = await fetchPendingTickets()
+      setTickets(items)
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to load pending tickets')
     }
@@ -31,11 +31,11 @@ export function PaymentsPage() {
     void load()
   }, [])
 
-  async function confirmTicket(id: string) {
+  async function handleConfirmTicket(id: string) {
     setBusyId(id)
     setError(null)
     try {
-      await api.post(`/api/tickets/${id}/confirm`)
+      await confirmPendingTicket(id)
       setTickets((prev) => prev.filter((t) => t._id !== id))
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to confirm ticket')
@@ -91,7 +91,7 @@ export function PaymentsPage() {
                   <div className="flex items-center justify-end gap-2">
                     <button
                       type="button"
-                      onClick={() => void confirmTicket(t._id)}
+                      onClick={() => void handleConfirmTicket(t._id)}
                       disabled={busyId === t._id}
                       className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
                     >

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api } from '../lib/api'
+import { fetchUpcomingEvents } from '../lib/adminApi'
 
 type Event = {
   _id: string
@@ -20,8 +20,8 @@ export function EventsPage() {
   async function load() {
     setError(null)
     try {
-      const res = await api.get('/api/events', { params: { upcoming: '1' } })
-      setEvents(res.data.events ?? [])
+      const items = await fetchUpcomingEvents()
+      setEvents(items)
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to load events')
     }

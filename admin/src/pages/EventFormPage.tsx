@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { api } from '../lib/api'
+import {
+  createEvent,
+  deleteEvent,
+  fetchEventById,
+  updateEvent,
+  type EventPayload,
+} from '../lib/adminApi'
 
 type EventDto = {
   _id: string
@@ -10,6 +16,7 @@ type EventDto = {
   description: string
   location: string
   date: string
+  expiresAt?: string
   price: number
   availableTickets: number
   imageUrl?: string
@@ -32,6 +39,7 @@ export function EventFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
   const [dateLocal, setDateLocal] = useState('')
+  const [expiresLocal, setExpiresLocal] = useState('')
   const [price, setPrice] = useState<number>(0)
   const [pricingType, setPricingType] = useState<'free' | 'paid'>('free')
   const [availableTickets, setAvailableTickets] = useState<number>(0)
@@ -48,13 +56,13 @@ export function EventFormPage({ mode }: { mode: 'create' | 'edit' }) {
     if (!isEdit || !id) return
     ;(async () => {
       try {
-        const res = await api.get('/api/events/' + id)
-        const e: EventDto = res.data.event
+        const e: EventDto = await fetchEventById(id)
         setTitle(e.title)
         setCategory(e.category ?? 'general')
         setDescription(e.description ?? '')
         setLocation(e.location)
         setDateLocal(isoToLocalInput(e.date))
+        setExpiresLocal(e.expiresAt ? isoToLocalInput(e.expiresAt) : '')
         const priceNumber = Number(e.price) || 0
         setPrice(priceNumber)
         setPricingType(priceNumber > 0 ? 'paid' : 'free')
@@ -72,21 +80,22 @@ export function EventFormPage({ mode }: { mode: 'create' | 'edit' }) {
     setError(null)
     try {
       const finalPrice = pricingType === 'free' ? 0 : Number(price)
-      const payload = {
+      const payload: EventPayload = {
         title,
         category,
         description,
         location,
         date: new Date(dateLocal).toISOString(),
+        expiresAt: expiresLocal ? new Date(expiresLocal).toISOString() : undefined,
         imageUrl: imageUrl || undefined,
         price: finalPrice,
         availableTickets: Number(availableTickets),
       }
 
       if (isEdit && id) {
-        await api.put('/api/events/' + id, payload)
+        await updateEvent(id, payload)
       } else {
-        await api.post('/api/events', payload)
+        await createEvent(payload)
       }
       navigate('/events')
     } catch (err: any) {
@@ -135,7 +144,7 @@ export function EventFormPage({ mode }: { mode: 'create' | 'edit' }) {
     setBusy(true)
     setError(null)
     try {
-      await api.delete('/api/events/' + id)
+      await deleteEvent(id)
       navigate('/events')
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Delete failed')
@@ -198,6 +207,19 @@ export function EventFormPage({ mode }: { mode: 'create' | 'edit' }) {
             type="datetime-local"
             required
           />
+        </label>
+
+        <label className="block">
+          <div className="text-sm font-medium text-slate-700">Event expires at (optional)</div>
+          <input
+            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+            value={expiresLocal}
+            onChange={(e) => setExpiresLocal(e.target.value)}
+            type="datetime-local"
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            After this time, tickets for this event will automatically expire and be removed.
+          </p>
         </label>
 
         <fieldset className="block">

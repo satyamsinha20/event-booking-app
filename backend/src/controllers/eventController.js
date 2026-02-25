@@ -1,6 +1,7 @@
 const { z } = require("zod");
 
 const { Event } = require("../models/Event");
+const { Ticket } = require("../models/Ticket");
 
 async function listEvents(req, res, next) {
   try {
@@ -48,6 +49,7 @@ async function createEvent(req, res, next) {
       description: z.string().max(5000).optional().default(""),
       location: z.string().min(1).max(200),
       date: z.coerce.date(),
+      expiresAt: z.coerce.date().optional(),
       imageUrl: z.string().url().optional(),
       price: z.number().min(0),
       availableTickets: z.number().int().min(0)
@@ -69,6 +71,7 @@ async function updateEvent(req, res, next) {
       description: z.string().max(5000).optional(),
       location: z.string().min(1).max(200).optional(),
       date: z.coerce.date().optional(),
+      expiresAt: z.coerce.date().optional(),
       imageUrl: z.string().url().optional(),
       price: z.number().min(0).optional(),
       availableTickets: z.number().int().min(0).optional()
@@ -77,6 +80,12 @@ async function updateEvent(req, res, next) {
 
     const event = await Event.findByIdAndUpdate(req.params.id, data, { new: true });
     if (!event) return res.status(404).json({ message: "Event not found" });
+
+    // If the event expiry or date changed, keep associated tickets in sync so TTL deletion matches
+    if (data.expiresAt || data.date) {
+      const newExpiresAt = data.expiresAt || data.date;
+      await Ticket.updateMany({ eventId: event._id }, { expiresAt: newExpiresAt });
+    }
     res.json({ event });
   } catch (err) {
     next(err);

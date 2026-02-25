@@ -7,6 +7,8 @@ const EventSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     location: { type: String, required: true, trim: true },
     date: { type: Date, required: true },
+    // Optional explicit expiry time for the event; used to expire tickets
+    expiresAt: { type: Date },
     imageUrl: { type: String, trim: true },
     price: { type: Number, required: true, min: 0 },
     availableTickets: { type: Number, required: true, min: 0 }

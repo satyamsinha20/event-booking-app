@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { api } from '../lib/api'
+import { fetchEventAttendees } from '../lib/adminApi'
 
 type AttendeeRow = {
   ticketId: string
@@ -20,10 +20,10 @@ export function AttendeesPage() {
   async function load() {
     setError(null)
     try {
-      const res = await api.get(`/api/tickets/event/${id}/attendees`)
-      setEventTitle(res.data.event?.title ?? '')
-      setTotalTickets(res.data.totalTickets ?? 0)
-      setAttendees(res.data.attendees ?? [])
+      const data = await fetchEventAttendees(id!)
+      setEventTitle(data.event?.title ?? '')
+      setTotalTickets(data.totalTickets ?? 0)
+      setAttendees(data.attendees ?? [])
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Failed to load attendees')
     }

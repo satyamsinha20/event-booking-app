@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { api } from './lib/api'
+import { fetchCurrentUser, loginUser, logoutUser } from './lib/adminApi'
 
 export type AuthUser = {
   _id: string
@@ -24,20 +24,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function refresh() {
     try {
-      const res = await api.get('/api/users/me')
-      setUser(res.data.user ?? null)
+      const nextUser = await fetchCurrentUser()
+      setUser(nextUser)
     } catch {
       setUser(null)
     }
   }
 
   async function login(email: string, password: string) {
-    const res = await api.post('/api/users/login', { email, password })
-    setUser(res.data.user)
+    const nextUser = await loginUser(email, password)
+    setUser(nextUser)
   }
 
   async function logout() {
-    await api.post('/api/users/logout')
+    await logoutUser()
     setUser(null)
   }
 

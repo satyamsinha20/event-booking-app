@@ -28,6 +28,7 @@ async function bookTicket(req, res, next) {
     if (!event) return res.status(409).json({ message: "Sold out or event not found" });
 
     const isPaid = Number(event.price || 0) > 0;
+    const expiresAt = event.expiresAt || event.date;
 
     if (isPaid && !utr) {
       // Undo reservation if payment reference is missing
@@ -44,6 +45,8 @@ async function bookTicket(req, res, next) {
         eventId: event._id,
         ticketCode: newTicketCode(),
         status: isPaid ? "pending" : "confirmed",
+        type: "one_time",
+        expiresAt,
         paymentRef: isPaid ? utr : undefined,
         amount: event.price
       });
@@ -150,17 +153,27 @@ async function checkInTicket(req, res, next) {
     const schema = z.object({ ticketCode: z.string().min(1) });
     const { ticketCode } = schema.parse(req.body);
 
-    const ticket = await Ticket.findOneAndUpdate(
-      { ticketCode, status: { $in: ["confirmed", "booked"] } },
-      { $set: { status: "checked_in" } },
-      { new: true }
-    )
+    const ticket = await Ticket.findOne({
+      ticketCode,
+      status: { $in: ["confirmed", "booked"] }
+    })
       .populate("userId", "_id name email")
-      .populate("eventId", "_id title")
-      .lean();
+      .populate("eventId", "_id title expiresAt date");
 
     if (!ticket)
       return res.status(404).json({ message: "Ticket not found or already checked-in" });
+
+    const now = new Date();
+    const ticketExpiry = ticket.expiresAt;
+    const eventExpiry = ticket.eventId?.expiresAt || ticket.eventId?.date;
+
+    if ((ticketExpiry && ticketExpiry < now) || (eventExpiry && eventExpiry < now)) {
+      return res.status(410).json({ message: "Ticket has expired" });
+    }
+
+    ticket.status = "checked_in";
+    await ticket.save();
+
     res.json({ ticket });
   } catch (err) {
     next(err);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../lib/api'
+import { fetchTicketStats } from '../lib/adminApi'
 
 type Stats = { ticketsSold: number; revenue: number }
 
@@ -10,8 +10,8 @@ export function DashboardPage() {
   useEffect(() => {
     ;(async () => {
       try {
-        const res = await api.get('/api/tickets/stats')
-        setStats(res.data)
+        const data = await fetchTicketStats()
+        setStats(data)
       } catch (err: any) {
         setError(err?.response?.data?.message ?? 'Failed to load stats')
       }
