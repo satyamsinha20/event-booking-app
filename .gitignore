@@ -19,3 +19,7 @@ yarn-error.log*
 
 # OS
 .DS_Store
+
+
+README.md
+.structignore
