@@ -13,10 +13,12 @@ export type EventItem = {
   category: string
   location: string
   date: string
+  expiresAt?: string
   price: number
   availableTickets: number
   imageUrl?: string
   description?: string
+  bookingEnabled?: boolean
 }
 
 export type TicketItem = {

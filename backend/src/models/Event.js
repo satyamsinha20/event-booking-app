@@ -11,7 +11,9 @@ const EventSchema = new mongoose.Schema(
     expiresAt: { type: Date },
     imageUrl: { type: String, trim: true },
     price: { type: Number, required: true, min: 0 },
-    availableTickets: { type: Number, required: true, min: 0 }
+    availableTickets: { type: Number, required: true, min: 0 },
+    // When false, users cannot book new tickets for this event
+    bookingEnabled: { type: Boolean, default: true }
   },
   { timestamps: true }
 );

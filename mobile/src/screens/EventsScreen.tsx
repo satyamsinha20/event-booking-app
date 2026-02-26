@@ -11,6 +11,23 @@ type EventListProps = {
   onSelect: (event: EventItem) => void
 }
 
+function getEventStatus(e: EventItem): 'upcoming' | 'running' | 'expired' {
+  const now = new Date()
+  const start = new Date(e.date)
+  const end = e.expiresAt ? new Date(e.expiresAt) : null
+
+  if (end && end.getTime() < now.getTime()) {
+    return 'expired'
+  }
+  if (!end && start.getTime() < now.getTime()) {
+    return 'expired'
+  }
+  if (start.getTime() > now.getTime()) {
+    return 'upcoming'
+  }
+  return 'running'
+}
+
 export function EventList({ api, onSelect }: EventListProps) {
   const [events, setEvents] = useState<EventItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -20,10 +37,10 @@ export function EventList({ api, onSelect }: EventListProps) {
     setLoading(true)
     setError(null)
     try {
-      const res = await api.get<{ events?: EventItem[] }>('/api/events', {
-        params: { upcoming: 'true' },
-      })
-      setEvents(res.data?.events || [])
+      const res = await api.get<{ events?: EventItem[] }>('/api/events')
+      const items = res.data?.events || []
+      const visible = items.filter((e) => getEventStatus(e) !== 'expired')
+      setEvents(visible)
     } catch (e: any) {
       setError(e?.response?.data?.message || e?.message || 'Failed to load events')
     } finally {

@@ -18,21 +18,27 @@ async function bookTicket(req, res, next) {
     });
     const { eventId, utr } = schema.parse(req.body);
 
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+    if (event.bookingEnabled === false) {
+      return res.status(403).json({ message: "Booking is disabled for this event" });
+    }
+
     // Reserve 1 ticket atomically (no Mongo transactions required)
-    const event = await Event.findOneAndUpdate(
+    const updatedEvent = await Event.findOneAndUpdate(
       { _id: eventId, availableTickets: { $gt: 0 } },
       { $inc: { availableTickets: -1 } },
       { new: true }
     );
 
-    if (!event) return res.status(409).json({ message: "Sold out or event not found" });
+    if (!updatedEvent) return res.status(409).json({ message: "Sold out or event not found" });
 
-    const isPaid = Number(event.price || 0) > 0;
-    const expiresAt = event.expiresAt || event.date;
+    const isPaid = Number(updatedEvent.price || 0) > 0;
+    const expiresAt = updatedEvent.expiresAt || updatedEvent.date;
 
     if (isPaid && !utr) {
       // Undo reservation if payment reference is missing
-      await Event.updateOne({ _id: event._id }, { $inc: { availableTickets: 1 } });
+      await Event.updateOne({ _id: updatedEvent._id }, { $inc: { availableTickets: 1 } });
       return res
         .status(400)
         .json({ message: "Payment reference (UTR) is required for paid events" });

@@ -2,13 +2,16 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
+import { registerUser } from '../lib/adminApi'
 
 export function LoginPage() {
-  const { login } = useAuth()
+  const { login, refresh } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as any)?.from ?? '/'
 
+  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -19,10 +22,17 @@ export function LoginPage() {
     setBusy(true)
     setError(null)
     try {
-      await login(email, password)
+      if (mode === 'login') {
+        await login(email, password)
+      } else {
+        await registerUser(name, email, password)
+        await refresh()
+      }
       navigate(from, { replace: true })
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Login failed')
+      setError(
+        err?.response?.data?.message ?? (mode === 'login' ? 'Login failed' : 'Registration failed'),
+      )
     } finally {
       setBusy(false)
     }
@@ -31,10 +41,29 @@ export function LoginPage() {
   return (
     <div className="min-h-screen grid place-items-center bg-slate-50 p-4">
       <div className="w-full max-w-sm rounded-xl border bg-white p-6 shadow-sm">
-        <div className="text-lg font-semibold">Admin Login</div>
-        <div className="mt-1 text-sm text-slate-600">Sign in with your admin account.</div>
+        <div className="text-lg font-semibold">
+          {mode === 'login' ? 'Admin Login' : 'Create account'}
+        </div>
+        <div className="mt-1 text-sm text-slate-600">
+          {mode === 'login'
+            ? 'Sign in with your admin account.'
+            : 'Register a new account. New accounts start as regular users.'}
+        </div>
 
         <form className="mt-6 space-y-3" onSubmit={onSubmit}>
+          {mode === 'register' ? (
+            <label className="block">
+              <div className="text-sm font-medium text-slate-700">Name</div>
+              <input
+                className="mt-1 w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                type="text"
+                required
+              />
+            </label>
+          ) : null}
+
           <label className="block">
             <div className="text-sm font-medium text-slate-700">Email</div>
             <input
@@ -64,9 +93,47 @@ export function LoginPage() {
             disabled={busy}
             type="submit"
           >
-            {busy ? 'Signing in…' : 'Sign in'}
+            {busy
+              ? mode === 'login'
+                ? 'Signing in…'
+                : 'Creating account…'
+              : mode === 'login'
+                ? 'Sign in'
+                : 'Create account'}
           </button>
         </form>
+
+        <div className="mt-4 text-sm text-slate-600 text-center">
+          {mode === 'login' ? (
+            <>
+              <span>Don&apos;t have an account? </span>
+              <button
+                type="button"
+                className="font-semibold text-slate-900 underline"
+                onClick={() => {
+                  setMode('register')
+                  setError(null)
+                }}
+              >
+                Create one
+              </button>
+            </>
+          ) : (
+            <>
+              <span>Already have an account? </span>
+              <button
+                type="button"
+                className="font-semibold text-slate-900 underline"
+                onClick={() => {
+                  setMode('login')
+                  setError(null)
+                }}
+              >
+                Sign in
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

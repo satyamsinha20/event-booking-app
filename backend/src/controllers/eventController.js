@@ -19,7 +19,9 @@ async function listEvents(req, res, next) {
     if (q.category) filter.category = q.category;
 
     const dateFilter = {};
-    if (q.upcoming === "1" || q.upcoming === "true") dateFilter.$gte = new Date();
+    if (q.upcoming === "1" || q.upcoming === "true") {
+      filter.expiresAt = { $gte: new Date() };
+    }
     if (q.from) dateFilter.$gte = new Date(q.from);
     if (q.to) dateFilter.$lte = new Date(q.to);
     if (Object.keys(dateFilter).length) filter.date = dateFilter;
@@ -52,7 +54,8 @@ async function createEvent(req, res, next) {
       expiresAt: z.coerce.date().optional(),
       imageUrl: z.string().url().optional(),
       price: z.number().min(0),
-      availableTickets: z.number().int().min(0)
+      availableTickets: z.number().int().min(0),
+      bookingEnabled: z.boolean().optional().default(true)
     });
     const data = schema.parse(req.body);
 
@@ -74,7 +77,8 @@ async function updateEvent(req, res, next) {
       expiresAt: z.coerce.date().optional(),
       imageUrl: z.string().url().optional(),
       price: z.number().min(0).optional(),
-      availableTickets: z.number().int().min(0).optional()
+      availableTickets: z.number().int().min(0).optional(),
+      bookingEnabled: z.boolean().optional()
     });
     const data = schema.parse(req.body);
 

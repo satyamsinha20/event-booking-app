@@ -20,6 +20,7 @@ type EventDto = {
   price: number
   availableTickets: number
   imageUrl?: string
+  bookingEnabled?: boolean
 }
 
 function isoToLocalInput(iso: string) {
@@ -44,6 +45,7 @@ export function EventFormPage({ mode }: { mode: 'create' | 'edit' }) {
   const [pricingType, setPricingType] = useState<'free' | 'paid'>('free')
   const [availableTickets, setAvailableTickets] = useState<number>(0)
   const [imageUrl, setImageUrl] = useState<string>('')
+  const [bookingEnabled, setBookingEnabled] = useState(true)
   const [uploading, setUploading] = useState(false)
 
   const [busy, setBusy] = useState(false)
@@ -54,24 +56,25 @@ export function EventFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
   useEffect(() => {
     if (!isEdit || !id) return
-    ;(async () => {
-      try {
-        const e: EventDto = await fetchEventById(id)
-        setTitle(e.title)
-        setCategory(e.category ?? 'general')
-        setDescription(e.description ?? '')
-        setLocation(e.location)
-        setDateLocal(isoToLocalInput(e.date))
-        setExpiresLocal(e.expiresAt ? isoToLocalInput(e.expiresAt) : '')
-        const priceNumber = Number(e.price) || 0
-        setPrice(priceNumber)
-        setPricingType(priceNumber > 0 ? 'paid' : 'free')
-        setAvailableTickets(Number(e.availableTickets))
-        setImageUrl(e.imageUrl ?? '')
-      } catch (err: any) {
-        setError(err?.response?.data?.message ?? 'Failed to load event')
-      }
-    })()
+      ; (async () => {
+        try {
+          const e: EventDto = await fetchEventById(id)
+          setTitle(e.title)
+          setCategory(e.category ?? 'general')
+          setDescription(e.description ?? '')
+          setLocation(e.location)
+          setDateLocal(isoToLocalInput(e.date))
+          setExpiresLocal(e.expiresAt ? isoToLocalInput(e.expiresAt) : '')
+          const priceNumber = Number(e.price) || 0
+          setPrice(priceNumber)
+          setPricingType(priceNumber > 0 ? 'paid' : 'free')
+          setAvailableTickets(Number(e.availableTickets))
+          setImageUrl(e.imageUrl ?? '')
+          setBookingEnabled(e.bookingEnabled !== false)
+        } catch (err: any) {
+          setError(err?.response?.data?.message ?? 'Failed to load event')
+        }
+      })()
   }, [isEdit, id])
 
   async function onSubmit(e: FormEvent) {
@@ -90,12 +93,14 @@ export function EventFormPage({ mode }: { mode: 'create' | 'edit' }) {
         imageUrl: imageUrl || undefined,
         price: finalPrice,
         availableTickets: Number(availableTickets),
+        bookingEnabled,
       }
 
       if (isEdit && id) {
         await updateEvent(id, payload)
       } else {
-        await createEvent(payload)
+        const res = await createEvent(payload)
+        console.log("Created event:", res)
       }
       navigate('/events')
     } catch (err: any) {
@@ -103,6 +108,7 @@ export function EventFormPage({ mode }: { mode: 'create' | 'edit' }) {
     } finally {
       setBusy(false)
     }
+
   }
 
   async function onImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -176,6 +182,16 @@ export function EventFormPage({ mode }: { mode: 'create' | 'edit' }) {
             onChange={(e) => setTitle(e.target.value)}
             required
           />
+        </label>
+
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className="h-4 w-4"
+            checked={bookingEnabled}
+            onChange={(e) => setBookingEnabled(e.target.checked)}
+          />
+          <span className="text-sm font-medium text-slate-700">Allow ticket booking for this event</span>
         </label>
 
         <label className="block">

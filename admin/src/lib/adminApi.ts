@@ -11,6 +11,11 @@ export async function loginUser(email: string, password: string) {
   return res.data.user
 }
 
+export async function registerUser(name: string, email: string, password: string) {
+  const res = await api.post('/api/users/register', { name, email, password })
+  return res.data.user
+}
+
 export async function logoutUser() {
   await api.post('/api/users/logout')
 }
@@ -24,6 +29,11 @@ export async function fetchTicketStats() {
 // Events
 export async function fetchUpcomingEvents() {
   const res = await api.get('/api/events', { params: { upcoming: '1' } })
+  return res.data.events ?? []
+}
+
+export async function fetchAllEvents() {
+  const res = await api.get('/api/events')
   return res.data.events ?? []
 }
 
@@ -42,6 +52,7 @@ export type EventPayload = {
   imageUrl?: string
   price: number
   availableTickets: number
+  bookingEnabled?: boolean
 }
 
 export async function createEvent(payload: EventPayload) {

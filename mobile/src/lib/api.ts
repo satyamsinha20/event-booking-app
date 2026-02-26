@@ -28,3 +28,19 @@ export async function loginRequest(email: string, password: string): Promise<str
   return res.data.token
 }
 
+export async function registerRequest(
+  name: string,
+  email: string,
+  password: string,
+): Promise<string> {
+  const res = await axios.post<{ token?: string }>(`${API_URL}/api/users/register`, {
+    name,
+    email,
+    password,
+  })
+  if (!res.data?.token) {
+    throw new Error('Missing token')
+  }
+  return res.data.token
+}
+
